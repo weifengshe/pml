@@ -5,16 +5,16 @@ output: html_document
 
 In this project, I'm trying to predict the activities by using the data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
 
-After loading and exploring the data, I removed 107 columns and only used the other 53 variables to predict the activities. Since we are predicting class varibles, so we can choose rpart or random forest method. After compare these two models, random forest gave me much higher accuracy. Therefore I sticked with random forest as my final model, that has the out of sample error around 0.6%. The analysis and code are shown as following.  
+After loading and exploring the data, I removed 107 columns and only used the other 53 variables to predict the activities. Since we are predicting class varibles, so we can choose rpart or random forest method. After comparing these two models, random forest gave me much higher accuracy. Therefore I sticked with random forest as my final model, that has the out of sample error around 0.6%. The analysis and code are shown as following.  
 
-First laod the packages and read in training and test data set. Then I split the training data set for     
+First load the packages and read in training and test data set. Then I split the training data set for     
 ```{r}
 library(caret)
 library(randomForest)
 ##load training data and test data
 train <- read.csv("pml-training.csv")
 test <- read.csv("pml-testing.csv")
-### split data into training set and validation set
+### split training data to training set and validation set
 inTrain <- createDataPartition(train$classe, p = 0.7)[[1]]
 training <- train[inTrain,]
 validation <- train[-inTrain,]
@@ -23,8 +23,8 @@ dim(training); dim(validation)
 exploring the data and remove columns with NAs
 ```{r}
 ### check if there is NAs in the data.
-sum(is.na(training)) ### we can see about 40% of the training data is NA. 
-sum(is.na(test)) ### about 62.5% of the test data is NA.
+sum(is.na(training)) ### we can see about 40% of the training data are NAs. 
+sum(is.na(test)) ### about 62.5% of the test data are NAs.
 ### then I want to determine which columns contain NAs.
 testIndex <- rep(FALSE, 160)
 for(i in 1:160){
@@ -35,7 +35,7 @@ else testIndex[i] = TRUE
 }
 
 sum(testIndex) ###there are 100 colunms with NAs.
-###futher check each columns with NA, I found in this NA columns, all values are NAs. So I decideed to remove all of these columns in both training and test data set for prediction. 
+###futher check each columns with NAs, I found in these NA columns, all values are NAs. So I decideed to remove all of these columns in both training and test data set for prediction. 
 preObj1 <- training[, testIndex]
 ##since first 7 columns are description of the data, so they are not used for training purpose. 
 ## change all the data to numeric from column 8 to column 59
@@ -47,7 +47,7 @@ preObj2 <- preObj1[8:60]
 ```
 predict with diffrent models
 ```{r}
-### first predict with rpart
+### first predict with rpart model
 modRpart <- train(classe ~ ., method = "rpart", data = preObj2)
 modRpart
 confusionMatrix(modRpart) ### this model has pretty low accuracy.
