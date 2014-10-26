@@ -1,0 +1,89 @@
+---
+title: "PML-writing-up-project"
+output: html_document
+---
+
+In this project, I'm trying to predict the activities by using the data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+After loading and exploring the data, I removed 107 columns and only used the other 53 variables to predict the activities. Since we are predicting class varibles, so we can choose rpart or random forest method. After compare these two models, random forest gave me much higher accuracy. Therefore I sticked with random forest as my final model, that has the out of sample error around 0.6%. The analysis and code are shown as following.  
+
+First laod the packages and read in training and test data set. Then I split the training data set for     
+```{r}
+library(caret)
+library(randomForest)
+##load training data and test data
+train <- read.csv("pml-training.csv")
+test <- read.csv("pml-testing.csv")
+### split data into training set and validation set
+inTrain <- createDataPartition(train$classe, p = 0.7)[[1]]
+training <- train[inTrain,]
+validation <- train[-inTrain,]
+dim(training); dim(validation)
+```
+exploring the data and remove columns with NAs
+```{r}
+### check if there is NAs in the data.
+sum(is.na(training)) ### we can see about 40% of the training data is NA. 
+sum(is.na(test)) ### about 62.5% of the test data is NA.
+### then I want to determine which columns contain NAs.
+testIndex <- rep(FALSE, 160)
+for(i in 1:160){
+        if(sum(is.na(test[, i])) > 0){
+testIndex[i] = FALSE                
+        }
+else testIndex[i] = TRUE
+}
+
+sum(testIndex) ###there are 100 colunms with NAs.
+###futher check each columns with NA, I found in this NA columns, all values are NAs. So I decideed to remove all of these columns in both training and test data set for prediction. 
+preObj1 <- training[, testIndex]
+##since first 7 columns are description of the data, so they are not used for training purpose. 
+## change all the data to numeric from column 8 to column 59
+for (i in 8:59) {
+        preObj1[,i] = as.numeric(preObj1[,i])
+}
+### remove the first 7 columns 
+preObj2 <- preObj1[8:60]
+```
+predict with diffrent models
+```{r}
+### first predict with rpart
+modRpart <- train(classe ~ ., method = "rpart", data = preObj2)
+modRpart
+confusionMatrix(modRpart) ### this model has pretty low accuracy.
+### then predict with random forest model.
+modRF <- randomForest(classe ~., data = preObj2)
+modRF
+```
+then apply this model to validation data set and test data set.  
+```{r}
+### use this data model to predict the validataion data set
+validationProc1 <- validation[, testIndex]
+for(i in 8:59){
+        validationProc1[,i] <- as.numeric(validationProc1[,i])
+}
+
+validationProc2 <- validationProc1[, 8:60]
+validationPred <- predict(modRF, newdata = validationProc2)
+table(validationPred, validationProc2$classe)
+### so the out of sample error rate is:
+37/nrow(validation)
+
+### use this model to predict the test data set
+test1 <- test[, testIndex]
+for(i in 8:59){
+        test[,i] <- as.numeric(test1[,i])
+}
+test2 <- test1[, 8:60]
+answers = predict(modRF, newdata = test2)
+answers
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers)
+```
+
